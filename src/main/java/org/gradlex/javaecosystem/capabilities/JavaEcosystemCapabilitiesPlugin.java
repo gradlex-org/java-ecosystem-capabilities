@@ -28,6 +28,7 @@ import org.gradle.api.artifacts.dsl.ComponentMetadataHandler;
 import org.gradle.api.initialization.Settings;
 import org.gradle.api.plugins.ExtensionAware;
 import org.gradle.util.GradleVersion;
+import org.gradlex.javaecosystem.capabilities.componentrules.ApacheSshdAlignmentRule;
 import org.gradlex.javaecosystem.capabilities.componentrules.AsmAlignmentRule;
 import org.gradlex.javaecosystem.capabilities.componentrules.GuavaComponentRule;
 import org.gradlex.javaecosystem.capabilities.componentrules.JerseyAlignmentRule;
@@ -177,6 +178,7 @@ public abstract class JavaEcosystemCapabilitiesPlugin implements Plugin<Extensio
 
     private void registerComponentRules(ComponentMetadataHandler components) {
         components.withModule(GuavaComponentRule.MODULE, GuavaComponentRule.class);
+        components.all(ApacheSshdAlignmentRule.class);
         components.all(AsmAlignmentRule.class);
         components.all(JerseyAlignmentRule.class);
         components.all(JettyAlignmentRule.class);

@@ -1,0 +1,40 @@
+/*
+ * Copyright 2022 the GradleX team.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package org.gradlex.javaecosystem.capabilities.componentrules;
+
+import org.gradle.api.artifacts.CacheableRule;
+import org.gradle.api.artifacts.ComponentMetadataContext;
+import org.gradle.api.artifacts.ComponentMetadataRule;
+import org.gradle.api.artifacts.ModuleVersionIdentifier;
+import org.gradlex.javaecosystem.capabilities.util.VersionNumber;
+
+@CacheableRule
+abstract public class AsmAlignmentRule implements ComponentMetadataRule {
+
+	public static final String BOM_GROUP_NAME = "org.ow2.asm";
+	public static final String BOM_ARTIFACT_NAME = "asm-bom";
+	public static final VersionNumber FIRST_BOM_VERSION = VersionNumber.version(9, 3);
+
+	@Override
+	public void execute(ComponentMetadataContext context) {
+		ModuleVersionIdentifier id = context.getDetails().getId();
+		if (id.getGroup().equals(BOM_GROUP_NAME) && !id.getName().equals(BOM_ARTIFACT_NAME) &&
+				VersionNumber.parse(id.getVersion()).compareTo(FIRST_BOM_VERSION) >= 0) {
+			context.getDetails().belongsTo(BOM_GROUP_NAME + ":" + BOM_ARTIFACT_NAME + ":" + id.getVersion(), false);
+		}
+	}
+}

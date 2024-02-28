@@ -25,7 +25,7 @@ import org.gradlex.javaecosystem.capabilities.util.VersionNumber;
 import javax.inject.Inject;
 
 @CacheableRule
-public class Log4J2Alignment extends AlignmentDefinitionsRule {
+public abstract class Log4J2Alignment extends AlignmentDefinitionsRule {
 
     @Inject
     public Log4J2Alignment(AlignmentDefinitions definition) {

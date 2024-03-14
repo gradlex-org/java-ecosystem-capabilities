@@ -1,0 +1,176 @@
+[[logging-plugin]]
+= Logging Capabilities Gradle Plugin
+
+This plugin provides a DSL that enables an application to declaratively enforce _at build time_ the logging framework it decided to use.
+See the <<intro,general introduction>> for the motivation for this plugin.
+
+== Plugin application and compatibility
+
+The plugin can be applied to projects using Gradle 6.8.3 and later.
+
+[source,kotlin]
+----
+plugins {
+  id("org.gradlex.logging-capabilities") version "2.0"
+}
+----
+
+Have a look at https://plugins.gradle.org/plugin/dev.jacomet.logging-capabilities[the documentation on the plugin portal] for alternate or DSL specific syntax.
+
+The application will make sure that the <<base-plugin,capabilities definition plugin>> has been applied as well, either as a settings or project plugin.
+This base plugin is the one that defines a number of Java ecosystem capabilities, including <<detection-logging,ones covering the logging landscape>>.
+
+== Expressing preference over a logging solution
+
+The plugin contributes a project extension that allows to configure which logging solution to use in a declarative fashion.
+
+The extension is accessed as follows:
+
+[source,kotlin]
+----
+// Assuming the plugin has been applied
+loggingCapabilities {
+    // Configuration goes here
+}
+----
+
+TIP: The different configuration options documented below do not _add_ dependencies.
+Make sure to have the expected dependency in your graph, either as a direct or transitive one.
+
+The plugin first provides a number of high-level, one stop solutions, for selecting a logging solution:
+
+|===
+| Method | Documentation | Required dependency
+
+| `enforceLogback()` +
+`enforceLogback(String configurationName)`
+| This will configure all capabilities to resolve in favour of http://logback.qos.ch/[LOGBack] and route all alternative logging solutions through Slf4J.
+| `ch.qos.logback:logback-classic`
+
+| `enforceLog4J2()` +
+`enforceLog4J2(String configurationName)`
+| This will configure all capabilities to resolve in favour of http://logging.apache.org/log4j/2.x/[Log4J 2] and route all alternative logging solutions through Log4J 2.
+| `org.apache.logging.log4j:log4j-slf4j-impl`
+
+| `enforceSlf4JSimple()` +
+`enforceSlf4JSimple(String configurationName)`
+| This will configure all capabilities to resolve in favour of Slf4J simple and route all alternative logging solutions through Slf4J.
+| `org.slf4j:slf4j-simple`
+
+|===
+
+TIP: The method without parameter will apply the setup to all dependency configuration, while the other one will limit the setup to the specified dependency configuration.
+
+If you want a finer grained control, the plugin provides lower level entry points for solving the different logging capability conflicts:
+|===
+| Method | Accepted parameter values | Documentation
+
+| `selectSlf4JBinding(Object notation)`
+| Value must be an Slf4J binding implementation known by the plugin: `org.slf4j:slf4j-simple`, `org.slf4j:slf4j-log4j12`, `org.slf4j:slf4j-jcl`, `org.slf4j:slf4j-jdk14`, `ch.qos.logback:logback-classic` or `org.apache.logging.log4j:log4j-slf4j-impl`
+| Configures the provided Slf4J binding for selection, configuring related capabilities if needed
+
+| `selectSlf4JBinding(String configurationName, Object notation)`
+| A dependency configuration name, that `canBeResolved=true` +
+A notation as above
+| Configures the provided Slf4J binding for selection, configuring related capabilities if needed, only for the provided dependency configuration
+
+| `selectLog4J12Implementation(Object notation)`
+| Value must be a Log4J 1.2 implementation known by the plugin: `org.slf4j:log4j-over-slf4j`, `org.apache.logging.log4j:log4j-1.2-api`, `log4:log4j` or `org.slf4j:slf4j-log4j12`
+| Configures the provided Log4J 1.2 implementation for selection, configuring related capabilities if needed
+
+| `selectLog4J12Implementation(String configurationName, Object notation)`
+| A dependency configuration name, that `canBeResolved=true` +
+A notation as above
+| Configures the provided Log4J 1.2 implementation for selection, configuring related capabilities if needed, only for the provided dependency configuration
+
+| `selectJulDelegation(Object notation)`
+| Value must be a `java.util.logging` interceptor or binding known by the plugin: `org.slf4j:jul-to-slf4j`, `org.slf4j:slf4j-jdk14` or `org.apache.logging.log4j:log4j-jul`
+| Configures the provided JUL integration of binding for selection, configuring related capabilities if needed
+
+| `selectJulDelegation(String configurationName, Object notation)`
+| A dependency configuration name, that `canBeResolved=true` +
+A notation as above
+| Configures the provided JUL integration for selection, configuring related capabilities if needed, only for the provided dependency configuration
+
+| `selectJCLImplementation(Object notation)`
+| Value must be a Apache Commons Logging interceptor or binding known by the plugin: `org.slf4j:jcl-over-slf4j`, `commons-logging:commons-logging`, `org.slf4j:slf4j-jcl` or `org.apache.logging.log4j:log4j-jcl`
+| Configures the provided commons logging interceptor or binding for selection, configuring related capabilities if needed
+
+| `selectJCLImplementation(String configurationName, Object notation)`
+| A dependency configuration name, that `canBeResolved=true` +
+A notation as above
+| Configures the provided commons logging interceptor or binding for selection, configuring related capabilities if needed, only for the provided dependency configuration
+
+| `selectSlf4JLog4J2Interaction(Object notation)`
+| Value must be a Log4J 2 module for Slf4J interaction known by the plugin: `org.apache.logging.log4j:log4j-to-slf4j` or `org.apache.logging.log4j:log4j-slf4j-impl`
+| Configures the Log4J 2 / Slf4J integration, configuring related capabilities if needed
+
+| `selectSlf4JLog4J2Interaction(Sting configurationName, Object notation)`
+| A dependency configuration name, that `canBeResolved=true` +
+A notation as above
+| Configures the Log4J 2 / Slf4J integration, configuring related capabilities if needed, only for the provided dependency configuration
+
+|===
+
+TIP: Notations above are those accepted by https://docs.gradle.org/6.0.1/dsl/org.gradle.api.artifacts.dsl.DependencyHandler.html#org.gradle.api.artifacts.dsl.DependencyHandler:create(java.lang.Object)[`DependencyHandler.create(notation)`] in Gradle that resolves to an `ExternalDependency`.
+Most often this is a `group:name:version` `String`.
+
+[[detection-logging]]
+== Detection of invalid logging configurations
+
+Upon application, this plugin defines a set of https://docs.gradle.org/6.0.1/userguide/component_metadata_rules.html#basics_of_writing_a_component_metadata_rule[component metadata rules] that add capabilities to relevant logging related dependencies.
+The added capabilities and impacted modules can be found in the table below:
+
+|===
+| Capability | Impacted modules | Comment
+
+| `slf4j-impl`
+| `org.slf4j:slf4j-simple`, `org.slf4j:slf4j-log4j12`, `org.slf4j:slf4j-jcl`, `org.slf4j:slf4j-jdk14`, `ch.qos.logback:logback-classic`, `org.apache.logging.log4j:log4j-slf4j-impl`, `org.apache.logging.log4j:log4j-slf4j2-impl`
+| Represents an Slf4J binding
+
+| `log4j2-impl`
+| `org.apache.logging.log4j:log4j-slf4j-impl`, `org.apache.logging.log4j:log4j-slf4j2-impl`, `org.apache.logging.log4j:log4j-core`
+| Represents the native Log4J 2 implementation or delegation to Slf4J
+
+| `log4j2-vs-slf4j`
+| `org.apache.logging.log4j:log4j-slf4j-impl`, `org.apache.logging.log4j:log4j-to-slf4j`
+| Represents the Slf4J / Log4J 2 relationship: which one delegates to the other
+
+| `slf4j-vs-log4j`
+| `org.slf4j:log4j-over-slf4j`, `org.slf4j:slf4j-log4j12`
+| Represents the Slf4J / Log4J 1.2 relationship: either Slf4J intercepts or binds to Log4J
+
+| `slf4j-vs-log4j2-log4j`
+| `org.slf4j:log4j-over-slf4j`, `org.apache.logging.log4j:log4j-1.2-api`, `log4j:log4j`
+| Represents the available Log4J implementation: native, with Slf4J or with Log4J 2
+
+| `slf4j-vs-jul`
+| `org.slf4j:jul-to-slf4j`, `org.slf4j:slf4j-jdk14`
+| Represents the Slf4J / `java.util.logging` relationship: either Slf4 intercepts or binds to JUL
+
+| `slf4j-vs-log4j2-jul`
+| `org.slf4j:jul-to-slf4j`, `org.apache.logging.log4j:log4j-jul`
+| Represents JUL replacement: either with Slf4J or with Log4J 2
+
+| `commons-logging-impl`
+| `commons-logging:commons-logging`, `org.slf4j:jcl-over-slf4j`, `org.springframework:spring-jcl`
+| Represents Apache Commons Logging implementation: native or Slf4J
+
+| `slf4j-vs-jcl`
+| `org.slf4j:jcl-over-slf4j`, `org.slf4j:slf4j-jcl`
+| Represents the Slf4J / Apache Commons Logging relationship: either Slf4J intercepts or binds to `commons-logging`
+
+| `slf4j-vs-log4j2-jcl`
+| `org.slf4j:jcl-over-slf4j`, `org.apache.logging.log4j:log4j-jcl`
+| Represents the Slf4J or Log4J 2 interception of `commons-logging`
+
+|===
+
+TIP: All capabilities are in the group `org.gradlex`
+
+With the set of capabilities defined above, all configuration resolutions in Gradle will fail if conflicting modules are found in the graph.
+
+== Alignment of logging libraries
+
+In addition to the capability setting and conflict detection, the plugin also registers https://docs.gradle.org/6.0.1/userguide/dependency_version_alignment.html#sec:align-versions-virtual[alignment rules] for Slf4J and Log4J 2 modules.
+
